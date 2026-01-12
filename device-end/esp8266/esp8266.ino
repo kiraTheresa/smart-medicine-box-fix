@@ -22,7 +22,8 @@ const char* ssid = "kiraTheresa";          // 修改为你的WiFi名称
 const char* password = "Theresakawaii";    // 修改为你的WiFi密码
 
 // ===================== MQTT配置 =====================
-const char* mqtt_server = "192.168.21.4";  // 你的PC IP地址
+// 请修改为你的宿主机IP地址（不是docker容器IP）
+const char* mqtt_server = "192.168.21.9";  // 例如：192.168.1.100
 const int mqtt_port = 1883;
 const char* mqtt_username = "";
 const char* mqtt_password = "";

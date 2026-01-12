@@ -5,6 +5,7 @@ import com.ycyu.backend.service.MqttService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
@@ -70,6 +71,7 @@ public class MqttIntegrationConfig {
 
     // MQTT 消息处理器 - 处理设备状态和发现
     @Bean
+    @ServiceActivator(inputChannel = "mqttInboundChannel")
     public MessageHandler mqttMessageHandler() {
         return new MessageHandler() {
             @Override
