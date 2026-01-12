@@ -1,0 +1,8 @@
+.vscode/
+.trae/
+.env
+.idea/
+logs/
+todo/
+docs/
+smart-medicine-box-copy

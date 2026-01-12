@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # MySQL数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: smart-medicine-box-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=smart_medicine_box
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_unicode_ci
+      - MYSQL_INITDB_CHARSET=utf8mb4
+      - MYSQL_INITDB_COLLATION=utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+    networks:
+      - smart-medicine-box-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      timeout: 20s
+      retries: 10
+
+  # Mosquitto MQTT Broker服务
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: smart-medicine-box-mosquitto
+    restart: always
+    ports:
+      - "1883:1883"  # MQTT协议端口
+      - "9001:9001"  # WebSocket端口
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - smart-medicine-box-network
+
+  # 后端Spring Boot服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart-medicine-box-backend
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/smart_medicine_box?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_unicode_ci
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=123456
+      - MQTT_BROKER_URL=tcp://mosquitto:1883
+    ports:
+      - "8080:8080"
+    networks:
+      - smart-medicine-box-network
+
+  # 前端React应用
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smart-medicine-box-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - smart-medicine-box-network
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  smart-medicine-box-network:
+    driver: bridge

@@ -1,0 +1,47 @@
+.App {
+  text-align: center;
+}
+
+.ant-layout {
+  background: #f0f2f5;
+}
+
+.ant-menu-item-selected {
+  background-color: #e6f7ff !important;
+}
+
+.ant-table {
+  background: #fff;
+}
+
+.ant-card {
+  margin-bottom: 16px;
+}
+
+.ant-input-group-addon {
+  background-color: #fafafa;
+}
+
+.ant-alert {
+  margin-bottom: 16px;
+}
+
+.ant-btn {
+  margin-right: 8px;
+}
+
+.ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    display: none;
+  }
+  
+  .ant-table {
+    font-size: 12px;
+  }
+}
