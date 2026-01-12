@@ -43,6 +43,7 @@ public class MqttIntegrationConfig {
 
     // MQTT 出站处理器
     @Bean
+    @ServiceActivator(inputChannel = "mqttOutboundChannel")
     public MqttPahoMessageHandler mqttOutbound() {
         MqttPahoMessageHandler handler = new MqttPahoMessageHandler(
                 "backend-server-out",
@@ -77,8 +78,16 @@ public class MqttIntegrationConfig {
             @Override
             public void handleMessage(Message<?> message) throws org.springframework.messaging.MessagingException {
                 try {
-                    byte[] payloadBytes = (byte[]) message.getPayload();
-                    String payload = new String(payloadBytes, StandardCharsets.UTF_8);
+                    String payload = "";
+                    
+                    // 处理不同类型的消息负载
+                    Object messagePayload = message.getPayload();
+                    if (messagePayload instanceof byte[]) {
+                        payload = new String((byte[]) messagePayload, StandardCharsets.UTF_8);
+                    } else if (messagePayload instanceof String) {
+                        payload = (String) messagePayload;
+                    }
+                    
                     String topic = (String) message.getHeaders().get("mqtt_receivedTopic");
 
                     // 从topic中提取设备ID
