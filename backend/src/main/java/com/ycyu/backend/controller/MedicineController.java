@@ -11,8 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/medicines")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
+@RequestMapping("/api/medicines")
 public class MedicineController {
 
     @Autowired

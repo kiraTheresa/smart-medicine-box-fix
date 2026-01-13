@@ -9,6 +9,38 @@ const api = axios.create({
   },
 });
 
+// 请求拦截器，自动添加认证令牌
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 响应拦截器，处理令牌过期等情况
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authApi = {
+  login: (username, password) => api.post('/auth/login', { username, password }),
+  register: (userData) => api.post('/auth/register', userData),
+  getCurrentUser: () => api.get('/auth/me'),
+};
+
 export const medicineApi = {
   getAll: () => api.get('/medicines'),
   getActive: () => api.get('/medicines/active'),
@@ -35,9 +67,9 @@ export const nodemcuApi = {
 };
 
 export const offlineEventApi = {
-  getDeviceEvents: (deviceId) => api.get(`/api/offline-events/device/${deviceId}`),
-  getUnprocessedEvents: () => api.get('/api/offline-events/unprocessed'),
-  processEvent: (eventId) => api.post(`/api/offline-events/process/${eventId}`),
-  processDeviceEvents: (deviceId) => api.post(`/api/offline-events/process/device/${deviceId}`),
-  deleteDeviceEvents: (deviceId) => api.delete(`/api/offline-events/device/${deviceId}`),
+  getDeviceEvents: (deviceId) => api.get(`/offline-events/device/${deviceId}`),
+  getUnprocessedEvents: () => api.get('/offline-events/unprocessed'),
+  processEvent: (eventId) => api.post(`/offline-events/process/${eventId}`),
+  processDeviceEvents: (deviceId) => api.post(`/offline-events/process/device/${deviceId}`),
+  deleteDeviceEvents: (deviceId) => api.delete(`/offline-events/device/${deviceId}`),
 };

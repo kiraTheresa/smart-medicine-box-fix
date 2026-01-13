@@ -13,8 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/nodemcu")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
+@RequestMapping("/api/nodemcu")
 public class NodeMCUController {
 
     @Autowired

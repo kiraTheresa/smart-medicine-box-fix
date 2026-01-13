@@ -12,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/offline-events")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
 public class OfflineEventController {
     
     @Autowired
