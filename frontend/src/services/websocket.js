@@ -12,6 +12,7 @@ class WebSocketService {
   // 连接到WebSocket服务器
   connect(callback) {
     if (this.isConnected) {
+      console.log('WebSocket已连接，跳过重复连接');
       callback && callback(true);
       return;
     }

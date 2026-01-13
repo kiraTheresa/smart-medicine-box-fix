@@ -24,7 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // 注册WebSocket端点，客户端通过这个端点连接
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("*")  // 允许所有来源，方便Docker环境访问
+                .setAllowedOriginPatterns("*")  // 允许所有来源，方便Docker环境访问
                 .withSockJS();
     }
 }

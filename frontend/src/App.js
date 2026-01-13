@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Menu, Typography, Space, Button } from 'antd';
 import {
   MedicineBoxOutlined,
@@ -24,20 +24,26 @@ const { Title } = Typography;
 const App = () => {
   const [currentPage, setCurrentPage] = useState('medicines');
   const { user, logout, isAdmin, isAuthenticated } = useAuth();
+  const hasConnectedRef = React.useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated() && !hasConnectedRef.current) {
       webSocketService.connect((connected) => {
         if (connected) {
           console.log('WebSocket连接已建立');
+          hasConnectedRef.current = true;
         } else {
           console.error('WebSocket连接失败');
+          hasConnectedRef.current = false;
         }
       });
     }
 
     return () => {
-      webSocketService.disconnect();
+      if (hasConnectedRef.current) {
+        webSocketService.disconnect();
+        hasConnectedRef.current = false;
+      }
     };
   }, [isAuthenticated]);
 
