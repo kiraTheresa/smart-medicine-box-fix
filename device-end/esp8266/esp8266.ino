@@ -38,6 +38,7 @@ PubSubClient mqttClient(wifiClient);
 String topicConfig;
 String topicCommand;
 String topicStatus;
+String topicEvents;
 String topicResponse;
 
 // ===================== 串口通信 =====================
@@ -264,6 +265,7 @@ void initDeviceId() {
   topicConfig = "medicinebox/" + deviceId + "/config";
   topicCommand = "medicinebox/" + deviceId + "/command";
   topicStatus = "medicinebox/" + deviceId + "/status";
+  topicEvents = "medicinebox/" + deviceId + "/events";
   topicResponse = "medicinebox/" + deviceId + "/response";
   
   Serial.print("设备ID: ");
@@ -802,7 +804,15 @@ void processSerialMessage(String msg) {
     emergencyMode = false;
     displayDirty = true;
     
-    sendMqttResponse("MEDICINE_TAKEN", "药品已服用");
+    String jsonStr = "{";
+    jsonStr += "\"deviceId\":\"" + deviceId + "\",";
+    jsonStr += "\"type\":\"MEDICINE_TAKEN\",";
+    jsonStr += "\"message\":\"药品已服用\",";
+    jsonStr += "\"timestamp\":" + String(millis());
+    jsonStr += "}";
+    
+    mqttClient.publish(topicEvents.c_str(), jsonStr.c_str());
+    Serial.println("服药确认已发送到MQTT");
     
     for (int i = 1; i <= MAX_MEDICINES; i++) {
       int idx = (currentMedicineIndex + i) % MAX_MEDICINES;
@@ -816,13 +826,31 @@ void processSerialMessage(String msg) {
     emergencyMode = true;
     remindLevel = 0;
     displayDirty = true;
-    sendMqttResponse("EMERGENCY_ACTIVATED", "紧急状态已激活");
+    
+    String jsonStr = "{";
+    jsonStr += "\"deviceId\":\"" + deviceId + "\",";
+    jsonStr += "\"type\":\"EMERGENCY\",";
+    jsonStr += "\"message\":\"紧急报警触发\",";
+    jsonStr += "\"timestamp\":" + String(millis());
+    jsonStr += "}";
+    
+    mqttClient.publish(topicEvents.c_str(), jsonStr.c_str());
+    Serial.println("紧急报警已发送到MQTT");
     
   } else if (msg == "EMERGENCY_CANCEL") {
     emergencyMode = false;
     Serial.println("BUZZ_OFF");
     displayDirty = true;
-    sendMqttResponse("EMERGENCY_CANCELED", "紧急状态已取消");
+    
+    String jsonStr = "{";
+    jsonStr += "\"deviceId\":\"" + deviceId + "\",";
+    jsonStr += "\"type\":\"EMERGENCY_CANCEL\",";
+    jsonStr += "\"message\":\"紧急报警已取消\",";
+    jsonStr += "\"timestamp\":" + String(millis());
+    jsonStr += "}";
+    
+    mqttClient.publish(topicEvents.c_str(), jsonStr.c_str());
+    Serial.println("紧急报警取消已发送到MQTT");
     
   } else if (msg == "ARDUINO_READY" || msg == "READY") {
     arduinoReady = true;
@@ -869,8 +897,15 @@ void checkMedicationTime() {
       snprintf(boxCmd, sizeof(boxCmd), "SET_BOX:%d", medicines[i].boxNum);
       Serial.println(boxCmd);
       
-      sendMqttResponse("MEDICINE_REMINDER", 
-        String("服药时间到: ") + medicines[i].name);
+      String jsonStr = "{";
+      jsonStr += "\"deviceId\":\"" + deviceId + "\",";
+      jsonStr += "\"type\":\"MEDICINE_REMINDER\",";
+      jsonStr += "\"message\":\"服药时间到: " + String(medicines[i].name) + "\",";
+      jsonStr += "\"timestamp\":" + String(millis());
+      jsonStr += "}";
+      
+      mqttClient.publish(topicEvents.c_str(), jsonStr.c_str());
+      Serial.println("服药提醒已发送到MQTT");
       
       displayDirty = true;
       break;

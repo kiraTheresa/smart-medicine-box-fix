@@ -125,23 +125,59 @@ public class MqttIntegrationConfig {
                             // 更新设备在线状态
                             mqttService.updateDeviceStatus(deviceId);
                             
-                            // 处理紧急事件
-                            if ("EMERGENCY".equals(payload.trim())) {
-                                System.out.println("🚨 设备 " + deviceId + " 触发紧急状态");
-                                // 调用DeviceEventService发送紧急通知
-                                deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY", "设备 " + deviceId + " 长按触发紧急报警");
-                            } 
-                            // 处理紧急事件取消
-                            else if ("EMERGENCY_CANCEL".equals(payload.trim())) {
-                                System.out.println("✅ 设备 " + deviceId + " 取消紧急状态");
-                                // 调用DeviceEventService发送取消通知
-                                deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY_CANCEL", "设备 " + deviceId + " 已取消紧急报警");
-                            } 
-                            // 处理服药确认
-                            else if ("TAKEN".equals(payload.trim())) {
-                                System.out.println("✅ 设备 " + deviceId + " 服药确认");
-                                // 调用DeviceEventService发送服药确认通知
-                                deviceEventService.handleMedicineTaken(deviceId, "未知药品");
+                            try {
+                                // 尝试解析JSON消息
+                                com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(payload);
+                                String eventType = jsonNode.has("type") ? jsonNode.get("type").asText() : "";
+                                
+                                System.out.println("  事件类型: " + eventType);
+                                
+                                // 根据事件类型处理
+                                switch (eventType) {
+                                    case "EMERGENCY":
+                                        System.out.println("🚨 设备 " + deviceId + " 触发紧急状态");
+                                        deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY", "设备 " + deviceId + " 长按触发紧急报警");
+                                        break;
+                                        
+                                    case "EMERGENCY_CANCEL":
+                                        System.out.println("✅ 设备 " + deviceId + " 取消紧急状态");
+                                        deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY_CANCEL", "设备 " + deviceId + " 已取消紧急报警");
+                                        break;
+                                        
+                                    case "MEDICINE_REMINDER":
+                                        String medicineName = jsonNode.has("message") ? jsonNode.get("message").asText() : "未知药品";
+                                        System.out.println("💊 设备 " + deviceId + " 服药提醒: " + medicineName);
+                                        deviceEventService.handleMedicationReminder(deviceId, medicineName, new java.util.Date().toString());
+                                        break;
+                                        
+                                    case "MEDICINE_TAKEN":
+                                        System.out.println("✅ 设备 " + deviceId + " 服药确认");
+                                        deviceEventService.handleMedicineTaken(deviceId, "药品已服用");
+                                        break;
+                                        
+                                    default:
+                                        System.out.println("⚠️ 未知事件类型: " + eventType);
+                                }
+                                
+                            } catch (Exception jsonException) {
+                                // JSON解析失败，尝试按旧格式处理
+                                System.out.println("JSON解析失败，尝试旧格式处理");
+                                
+                                // 处理紧急事件
+                                if ("EMERGENCY".equals(payload.trim())) {
+                                    System.out.println("🚨 设备 " + deviceId + " 触发紧急状态");
+                                    deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY", "设备 " + deviceId + " 长按触发紧急报警");
+                                } 
+                                // 处理紧急事件取消
+                                else if ("EMERGENCY_CANCEL".equals(payload.trim())) {
+                                    System.out.println("✅ 设备 " + deviceId + " 取消紧急状态");
+                                    deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY_CANCEL", "设备 " + deviceId + " 已取消紧急报警");
+                                } 
+                                // 处理服药确认
+                                else if ("TAKEN".equals(payload.trim())) {
+                                    System.out.println("✅ 设备 " + deviceId + " 服药确认");
+                                    deviceEventService.handleMedicineTaken(deviceId, "未知药品");
+                                }
                             }
                         }
                     }
