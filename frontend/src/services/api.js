@@ -67,3 +67,18 @@ export const offlineEventApi = {
   processDeviceEvents: (deviceId) => api.post(`/offline-events/process/device/${deviceId}`),
   deleteDeviceEvents: (deviceId) => api.delete(`/offline-events/device/${deviceId}`),
 };
+
+export const notificationApi = {
+  sendTest: (deviceId, command, data) => api.post('/notifications/test', data, {
+    params: { deviceId, command }
+  }),
+  getHistory: (deviceId) => api.get('/notifications/history', {
+    params: deviceId ? { deviceId } : {}
+  }),
+  markAsRead: (notificationId) => api.post('/notifications/read', null, {
+    params: { notificationId }
+  }),
+  clear: (deviceId) => api.delete('/notifications/clear', {
+    params: deviceId ? { deviceId } : {}
+  }),
+};
