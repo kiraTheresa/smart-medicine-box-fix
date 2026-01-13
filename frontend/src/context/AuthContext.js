@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = '';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

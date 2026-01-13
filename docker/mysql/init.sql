@@ -61,9 +61,9 @@ INSERT INTO medicines (name, dosage, hour, minute, box_num, enabled) VALUES
 -- 插入用户初始数据
 -- 密码使用BCrypt加密，admin/admin123 和 user/user123
 INSERT INTO users (username, password, name, role, enabled, phone, email) VALUES
-('admin', '$2a$10$QxX5L06aG6tL8nZ2X5e8XOQ3qX5Z7tL9nZ2X5e8XOQ3qX5Z7tL9', '管理员', 'ADMIN', TRUE, '13800138000', 'admin@example.com'),
-('user', '$2a$10$QxX5L06aG6tL8nZ2X5e8XOQ3qX5Z7tL9nZ2X5e8XOQ3qX5Z7tL9', '张三', 'USER', TRUE, '13900139000', 'user@example.com'),
-('lao_li', '$2a$10$QxX5L06aG6tL8nZ2X5e8XOQ3qX5Z7tL9nZ2X5e8XOQ3qX5Z7tL9', '李大爷', 'USER', TRUE, '13700137000', 'laoli@example.com');
+('admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '管理员', 'ADMIN', TRUE, '13800138000', 'admin@example.com'),
+('user', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '张三', 'USER', TRUE, '13900139000', 'user@example.com'),
+('lao_li', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '李大爷', 'USER', TRUE, '13700137000', 'laoli@example.com');
 
 -- 插入离线事件初始数据
 INSERT INTO offline_events (device_id, event_time, event_type, event_data, processed, description) VALUES
