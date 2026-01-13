@@ -29,6 +29,9 @@ public class MqttIntegrationConfig {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private com.ycyu.backend.service.DeviceEventService deviceEventService;
+
     // 出站通道（发送消息）
     @Bean
     public MessageChannel mqttOutboundChannel() {
@@ -55,14 +58,15 @@ public class MqttIntegrationConfig {
         return handler;
     }
 
-    // MQTT 入站适配器 - 订阅设备状态
+    // MQTT 入站适配器 - 订阅设备状态和事件
     @Bean
     public MqttPahoMessageDrivenChannelAdapter mqttInbound() {
         MqttPahoMessageDrivenChannelAdapter adapter = 
                 new MqttPahoMessageDrivenChannelAdapter(
                         "backend-server-in",
                         mqttClientFactory,
-                        "medicinebox/+/status"      // 订阅所有设备状态
+                        "medicinebox/+/status",      // 订阅所有设备状态
+                        "medicinebox/+/events"       // 订阅所有设备事件
                 );
         adapter.setCompletionTimeout(5000);
         adapter.setQos(1);
@@ -70,7 +74,7 @@ public class MqttIntegrationConfig {
         return adapter;
     }
 
-    // MQTT 消息处理器 - 处理设备状态和发现
+    // MQTT 消息处理器 - 处理设备状态和事件
     @Bean
     @ServiceActivator(inputChannel = "mqttInboundChannel")
     public MessageHandler mqttMessageHandler() {
@@ -91,22 +95,54 @@ public class MqttIntegrationConfig {
                     String topic = (String) message.getHeaders().get("mqtt_receivedTopic");
 
                     // 从topic中提取设备ID
-                    if (topic != null && topic.startsWith("medicinebox/") && topic.endsWith("/status")) {
-                        String deviceId = topic.substring(12, topic.length() - 7); // 移除"medicinebox/"和"/status"
+                    if (topic != null) {
+                        if (topic.startsWith("medicinebox/") && topic.endsWith("/status")) {
+                            String deviceId = topic.substring(12, topic.length() - 7); // 移除"medicinebox/"和"/status"
 
-                        System.out.println("📡 收到设备状态消息:");
-                        System.out.println("  设备ID: " + deviceId);
-                        System.out.println("  状态: " + payload);
+                            System.out.println("📡 收到设备状态消息:");
+                            System.out.println("  设备ID: " + deviceId);
+                            System.out.println("  状态: " + payload);
 
-                        // 更新设备在线状态
-                        mqttService.updateDeviceStatus(deviceId);
+                            // 更新设备在线状态
+                            mqttService.updateDeviceStatus(deviceId);
 
-                        // 解析状态信息
-                        if (payload.contains("\"mqttConnected\":true")) {
-                            System.out.println("✅ 设备 " + deviceId + " MQTT连接正常");
-                        }
-                        if (payload.contains("\"arduinoReady\":true")) {
-                            System.out.println("✅ 设备 " + deviceId + " Arduino已就绪");
+                            // 解析状态信息
+                            if (payload.contains("\"mqttConnected\":true")) {
+                                System.out.println("✅ 设备 " + deviceId + " MQTT连接正常");
+                            }
+                            if (payload.contains("\"arduinoReady\":true")) {
+                                System.out.println("✅ 设备 " + deviceId + " Arduino已就绪");
+                            }
+                        } 
+                        // 处理设备事件消息
+                        else if (topic.startsWith("medicinebox/") && topic.endsWith("/events")) {
+                            String deviceId = topic.substring(12, topic.length() - 7); // 移除"medicinebox/"和"/events"
+                            
+                            System.out.println("📡 收到设备事件消息:");
+                            System.out.println("  设备ID: " + deviceId);
+                            System.out.println("  事件: " + payload);
+                            
+                            // 更新设备在线状态
+                            mqttService.updateDeviceStatus(deviceId);
+                            
+                            // 处理紧急事件
+                            if ("EMERGENCY".equals(payload.trim())) {
+                                System.out.println("🚨 设备 " + deviceId + " 触发紧急状态");
+                                // 调用DeviceEventService发送紧急通知
+                                deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY", "设备 " + deviceId + " 长按触发紧急报警");
+                            } 
+                            // 处理紧急事件取消
+                            else if ("EMERGENCY_CANCEL".equals(payload.trim())) {
+                                System.out.println("✅ 设备 " + deviceId + " 取消紧急状态");
+                                // 调用DeviceEventService发送取消通知
+                                deviceEventService.handleDeviceWarning(deviceId, "EMERGENCY_CANCEL", "设备 " + deviceId + " 已取消紧急报警");
+                            } 
+                            // 处理服药确认
+                            else if ("TAKEN".equals(payload.trim())) {
+                                System.out.println("✅ 设备 " + deviceId + " 服药确认");
+                                // 调用DeviceEventService发送服药确认通知
+                                deviceEventService.handleMedicineTaken(deviceId, "未知药品");
+                            }
                         }
                     }
 

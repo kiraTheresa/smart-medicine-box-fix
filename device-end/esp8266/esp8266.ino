@@ -461,6 +461,15 @@ void handleCommandMessage(char* message) {
   } else if (command == "GET_CONFIG") {
     sendCurrentConfig();
     
+  } else if (command == "SWITCH_BOX") {
+    int boxNum = data["boxNum"] | 1;
+    Serial.print("切换药格");
+    Serial.println(boxNum);
+    char boxCmd[20];
+    snprintf(boxCmd, sizeof(boxCmd), "SET_BOX:%d", boxNum);
+    Serial.println(boxCmd);
+    sendMqttResponse("COMMAND_SUCCESS", "药格已切换");
+    
   } else {
     Serial.print("未知命令: ");
     Serial.println(command);

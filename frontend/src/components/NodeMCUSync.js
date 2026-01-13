@@ -15,6 +15,7 @@ const NodeMCUSync = () => {
   const [configVisible, setConfigVisible] = useState(false);
   const [devices, setDevices] = useState([]);
   const [selectedCommand, setSelectedCommand] = useState('OPEN_BOX');
+  const [selectedBoxNum, setSelectedBoxNum] = useState(1);
   const [onlineCount, setOnlineCount] = useState(0);
   const [selectedDeviceDetails, setSelectedDeviceDetails] = useState(null);
   const [deviceEvents, setDeviceEvents] = useState([]);
@@ -128,10 +129,13 @@ const NodeMCUSync = () => {
     let commandData = {};
     switch (selectedCommand) {
       case 'OPEN_BOX':
-        commandData = { boxNum: 1 };
+        commandData = { boxNum: selectedBoxNum };
         break;
       case 'CLOSE_BOX':
-        commandData = { boxNum: 1 };
+        commandData = { boxNum: selectedBoxNum };
+        break;
+      case 'SWITCH_BOX':
+        commandData = { boxNum: selectedBoxNum };
         break;
       case 'TEST_BUZZER':
         commandData = { level: 1 };
@@ -333,12 +337,28 @@ const NodeMCUSync = () => {
             value={selectedCommand}
             onChange={setSelectedCommand}
           >
-            <Option value="OPEN_BOX">打开药盒</Option>
-            <Option value="CLOSE_BOX">关闭药盒</Option>
+            <Option value="OPEN_BOX">打开药格</Option>
+            <Option value="CLOSE_BOX">关闭药格</Option>
+            <Option value="SWITCH_BOX">切换药格</Option>
             <Option value="TEST_BUZZER">测试蜂鸣器</Option>
             <Option value="GET_STATUS">获取状态</Option>
             <Option value="REBOOT">重启设备</Option>
           </Select>
+          
+          <label style={{ marginLeft: 16 }}>药格编号: </label>
+          <Select
+            style={{ width: 80, marginLeft: 8, marginRight: 8 }}
+            value={selectedBoxNum}
+            onChange={setSelectedBoxNum}
+          >
+            <Option value={1}>1</Option>
+            <Option value={2}>2</Option>
+            <Option value={3}>3</Option>
+            <Option value={4}>4</Option>
+            <Option value={5}>5</Option>
+            <Option value={6}>6</Option>
+          </Select>
+          
           <Button 
             icon={<SendOutlined />}
             onClick={handleSendCommand}

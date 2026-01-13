@@ -311,7 +311,16 @@ void handleShortPress() {
     // 紧急状态下忽略短按
     
   } else {
-    toggleMedicineBox();
+    // 切换药格
+    currentBox = (currentBox == 1) ? 2 : 1;
+    Serial.print("OK:BOX");
+    Serial.println(currentBox);
+    playToggleTone();
+    
+    // 发送切换药格命令到NodeMCU
+    char boxCmd[20];
+    snprintf(boxCmd, sizeof(boxCmd), "SET_BOX:%d", currentBox);
+    Serial.println(boxCmd);
   }
 }
 
