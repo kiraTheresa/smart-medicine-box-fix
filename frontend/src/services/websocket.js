@@ -16,15 +16,21 @@ class WebSocketService {
       return;
     }
 
+    console.log('🔌 开始连接WebSocket: /api/ws');
+
     // 创建SockJS连接
-    const socket = new SockJS('/api/ws');
+    const socket = new SockJS('/api/ws', null, {
+      transports: ['websocket', 'xhr-streaming', 'xhr-polling']
+    });
     
+    console.log('📡 SockJS对象已创建:', socket);
+
     // 创建STOMP客户端
     this.stompClient = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
       debug: (str) => {
-        // 禁用调试日志
+        console.log('📝 STOMP调试:', str);
       },
       onConnect: (frame) => {
         console.log('✅ WebSocket连接成功', frame);
@@ -42,16 +48,24 @@ class WebSocketService {
         this.subscriptions.push(subscription);
       },
       onStompError: (frame) => {
-        console.error('❌ WebSocket连接失败', frame);
+        console.error('❌ STOMP错误:', frame);
+        console.error('❌ 错误详情:', frame.headers, frame.body);
         this.isConnected = false;
         callback && callback(false);
       },
       onWebSocketError: (error) => {
-        console.error('❌ WebSocket连接失败', error);
+        console.error('❌ WebSocket错误:', error);
+        console.error('❌ 错误详情:', error);
         this.isConnected = false;
         callback && callback(false);
+      },
+      onWebSocketClose: (e) => {
+        console.error('❌ WebSocket连接关闭:', e);
+        this.isConnected = false;
       }
     });
+
+    console.log('🚀 启动STOMP客户端...');
 
     // 启动连接
     this.stompClient.activate();
