@@ -8,11 +8,13 @@ import {
   LogoutOutlined,
   DashboardOutlined,
   ToolOutlined,
+  ControlOutlined,
 } from '@ant-design/icons';
 import './App.css';
 import MedicineList from './components/MedicineList';
 import NodeMCUSync from './components/NodeMCUSync';
 import NotificationComponent from './components/NotificationComponent';
+import BoxControl from './components/BoxControl';
 import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
 
@@ -46,6 +48,11 @@ const App = () => {
       label: '设备管理',
     },
     {
+      key: 'box-control',
+      icon: <ControlOutlined />,
+      label: '药格子控制',
+    },
+    {
       key: 'sync',
       icon: <SyncOutlined />,
       label: '同步设置',
@@ -63,6 +70,11 @@ const App = () => {
       key: 'medicines',
       icon: <MedicineBoxOutlined />,
       label: '我的药品',
+    },
+    {
+      key: 'box-control',
+      icon: <ControlOutlined />,
+      label: '药格子控制',
     },
     {
       key: 'dashboard',
@@ -91,6 +103,8 @@ const App = () => {
             <p>设备管理功能 - 仅管理员可见</p>
           </div>
         );
+      case 'box-control':
+        return <BoxControl />;
       case 'dashboard':
         if (isAdmin()) {
           return (

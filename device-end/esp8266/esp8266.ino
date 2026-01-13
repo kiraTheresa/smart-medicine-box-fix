@@ -77,6 +77,7 @@ bool configSynced = false;
 bool showingSyncResult = false;
 bool inWiFiScreen = false;
 bool mqttConnected = false;
+bool offlineMode = false;
 
 unsigned long lastRemindTime = 0;
 unsigned long lastTimeSync = 0;
@@ -90,6 +91,8 @@ unsigned long wifiScreenShowTime = 0;
 unsigned long lastMqttReconnect = 0;
 unsigned long lastMqttHeartbeat = 0;
 unsigned long lastStatusSend = 0;
+unsigned long mqttWaitStart = 0;
+
 
 String currentTime = "--:--";
 String lastDisplayedTime = "";
@@ -118,7 +121,7 @@ void showBootScreen() {
   u8g2.clearBuffer();
   drawText(30, 10, "智能药盒");
   drawText(15, 30, "MQTT版本");
-  drawText(50, 50, "V8.3");
+  drawText(50, 50, "V1.0");
   u8g2.sendBuffer();
   delay(2000);
 }
@@ -139,12 +142,6 @@ void showMainScreen() {
     drawText(36, 14, "--:--");
   }
   
-  // MQTT状态指示
-  if (mqttConnected) {
-    u8g2.drawDisc(120, 18, 2);
-  } else {
-    u8g2.drawCircle(120, 18, 2);
-  }
   
   // 第3行：当前药品
   drawText(0, 28, "当前:");
@@ -192,6 +189,8 @@ void showMainScreen() {
     statusText = "在线";
   } else if (wifiConnected) {
     statusText = "WiFi";
+  } else if (offlineMode) {
+    statusText = "离线模式";
   } else {
     statusText = "离线";
   }
@@ -470,6 +469,14 @@ void handleCommandMessage(char* message) {
     Serial.println(boxCmd);
     sendMqttResponse("COMMAND_SUCCESS", "药格已切换");
     
+  } else if (command == "SET_OFFLINE_MODE") {
+    bool enabled = data["enabled"].as<bool>();
+    offlineMode = enabled;
+    Serial.print("离线模式");
+    Serial.println(enabled ? "已启用" : "已禁用");
+    sendMqttResponse("COMMAND_SUCCESS", enabled ? "离线模式已启用" : "离线模式已禁用");
+    displayDirty = true;
+    
   } else {
     Serial.print("未知命令: ");
     Serial.println(command);
@@ -535,6 +542,8 @@ void connectMQTT() {
   mqttClient.setCallback(mqttCallback);
   mqttClient.setBufferSize(2048);
   
+  bool wasConnected = mqttConnected;
+  
   int attempts = 0;
   while (!mqttClient.connected() && attempts < 5) {
     attempts++;
@@ -580,7 +589,10 @@ void connectMQTT() {
     Serial.println("MQTT连接失败");
     mqttConnected = false;
     displayDirty = true;
-    showSyncScreen(false, "MQTT连接失败");
+    // 只在首次连接或从连接状态变为断开状态时显示提示
+    if (wasConnected) {
+      showSyncScreen(false, "MQTT连接失败");
+    }
   }
 }
 
@@ -634,6 +646,7 @@ void sendDeviceStatus() {
   jsonStr += "\"remindLevel\":" + String(remindLevel) + ",";
   jsonStr += "\"arduinoReady\":" + String(arduinoReady ? "true" : "false") + ",";
   jsonStr += "\"activeMedicines\":" + String(activeMedicines) + ",";
+  jsonStr += "\"offlineMode\":" + String(offlineMode ? "true" : "false") + ",";
   jsonStr += "\"timestamp\":" + String(millis());
   
   if (timeSynced) {
@@ -650,6 +663,7 @@ void sendCurrentConfig() {
   jsonStr += "\"deviceId\":\"" + deviceId + "\",";
   jsonStr += "\"type\":\"CONFIG\",";
   jsonStr += "\"timestamp\":" + String(millis()) + ",";
+  jsonStr += "\"offlineMode\":" + String(offlineMode ? "true" : "false") + ",";
   jsonStr += "\"medicines\":[";
   
   for (int i = 0; i < MAX_MEDICINES; i++) {
@@ -870,50 +884,55 @@ void checkMedicationTime() {
 // ===================== 主程序 =====================
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  delay(2000);
+  delay(500);   // 开机延时缩短
   
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH);
   
   setupDisplay();
   showBootScreen();
-  
-  Serial.println("智能药盒系统启动...");
-  Serial.println("版本: V8.3 完整修复版");
-  Serial.println("================================");
-  
+
   connectWiFi();
   initDeviceId();
   
-  if (wifiConnected) {
-    connectMQTT();
-  }
+  // ---------- MQTT 等待最多 5 秒 ----------
+  mqttWaitStart = millis();
   
-  delay(3000);
-  Serial.println("HELLO");
+  while (wifiConnected && !mqttConnected) {
+    connectMQTT();          // 尝试连接
+    mqttClient.loop();      // 处理网络
+    
+    if (millis() - mqttWaitStart > 5000) {
+      Serial.println("MQTT连接超时，进入离线模式");
+      break;
+    }
+    delay(200);             // 很短的让步，防止刷屏
+  }
+  // ----------------------------------------
   
   displayDirty = true;
   
   if (mqttConnected) {
     sendMqttResponse("SYSTEM_READY", "系统已就绪");
   }
-  
-  Serial.println("NODEMCU_READY");
-  Serial.println("设备ID: " + deviceId);
-  Serial.println("================================");
+
 }
+
 
 void loop() {
   handleSerial();
   
   // MQTT连接维护
   if (wifiConnected) {
+    bool wasConnected = mqttConnected;
+    
     if (!mqttClient.connected()) {
       if (millis() - lastMqttReconnect > 10000) {
         lastMqttReconnect = millis();
         Serial.println("MQTT断开，尝试重连...");
         connectMQTT();
       }
+      mqttConnected = false;
     } else {
       mqttClient.loop();
       mqttConnected = true;
@@ -923,6 +942,11 @@ void loop() {
         sendDeviceStatus();
         lastStatusSend = millis();
       }
+    }
+    
+    // 如果MQTT连接状态发生变化，触发显示更新
+    if (wasConnected != mqttConnected) {
+      displayDirty = true;
     }
   }
   
