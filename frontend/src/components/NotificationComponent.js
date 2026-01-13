@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Button, List, Avatar, Popover, Badge, Space } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { notificationApi } from '../services/api';
 import webSocketService from '../services/websocket';
+
+dayjs.extend(relativeTime);
 
 const NotificationComponent = () => {
   const [notifications, setNotifications] = useState([]);
