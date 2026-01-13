@@ -11,7 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/medicines")
+@RequestMapping("/medicines")
 public class MedicineController {
 
     @Autowired
