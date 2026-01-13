@@ -1,5 +1,6 @@
 package com.ycyu.backend.controller;
 
+import com.ycyu.backend.dto.DeviceStatusDTO;
 import com.ycyu.backend.dto.MedicineDTO;
 import com.ycyu.backend.service.MedicineService;
 import com.ycyu.backend.service.MqttService;
@@ -121,20 +122,27 @@ public class NodeMCUController {
         }
     }
 
-    // 获取在线设备
+    // 获取设备状态列表
     @GetMapping("/devices")
-    public ResponseEntity<Map<String, Object>> getOnlineDevices() {
-        List<String> devices = mqttService.getOnlineDevices();
-
+    public ResponseEntity<Map<String, Object>> getDevices() {
+        List<DeviceStatusDTO> deviceStatusList = mqttService.getDeviceStatusList();
+        
         // 如果没有发现设备，添加默认设备（你的设备ID）
-        if (devices.isEmpty()) {
-            devices.add("medicinebox_E8DB8498F9E9");
+        if (deviceStatusList.isEmpty()) {
+            DeviceStatusDTO defaultDevice = new DeviceStatusDTO();
+            defaultDevice.setDeviceId("medicinebox_E8DB8498F9E9");
+            defaultDevice.setOnline(false);
+            defaultDevice.setLastActiveTime(0);
+            defaultDevice.setStatusMessage("默认设备 - 未连接");
+            deviceStatusList.add(defaultDevice);
         }
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("devices", devices);
+        response.put("devices", deviceStatusList);
         response.put("timestamp", System.currentTimeMillis());
+        response.put("total", deviceStatusList.size());
+        response.put("onlineCount", deviceStatusList.stream().filter(DeviceStatusDTO::isOnline).count());
 
         return ResponseEntity.ok(response);
     }

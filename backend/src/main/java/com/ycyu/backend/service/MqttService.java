@@ -2,6 +2,7 @@ package com.ycyu.backend.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ycyu.backend.dto.DeviceStatusDTO;
 import com.ycyu.backend.dto.MedicineDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,24 +19,40 @@ public class MqttService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // 存储在线设备
-    private final Map<String, Long> onlineDevices = new ConcurrentHashMap<>();
+    // 存储设备状态
+    private final Map<String, DeviceStatusDTO> deviceStatusMap = new ConcurrentHashMap<>();
 
-    // 获取在线设备列表
-    public List<String> getOnlineDevices() {
-        List<String> devices = new ArrayList<>();
+    // 获取设备状态列表
+    public List<DeviceStatusDTO> getDeviceStatusList() {
+        List<DeviceStatusDTO> devices = new ArrayList<>();
         long now = System.currentTimeMillis();
 
-        // 移除超过60秒没有心跳的设备
-        onlineDevices.entrySet().removeIf(entry -> now - entry.getValue() > 60000);
+        // 检查所有设备的在线状态
+        for (DeviceStatusDTO device : deviceStatusMap.values()) {
+            // 更新设备在线状态（超过60秒无心跳则标记为离线）
+            boolean isOnline = now - device.getLastActiveTime() <= 60000;
+            device.setOnline(isOnline);
+            devices.add(device);
+        }
 
-        devices.addAll(onlineDevices.keySet());
         return devices;
     }
 
     // 更新设备在线状态
     public void updateDeviceStatus(String deviceId) {
-        onlineDevices.put(deviceId, System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        DeviceStatusDTO device = deviceStatusMap.get(deviceId);
+        
+        if (device == null) {
+            // 新设备，创建状态记录
+            device = new DeviceStatusDTO();
+            device.setDeviceId(deviceId);
+            device.setStatusMessage("设备已连接");
+        }
+        
+        device.setLastActiveTime(now);
+        device.setOnline(true);
+        deviceStatusMap.put(deviceId, device);
         System.out.println("📱 设备在线: " + deviceId);
     }
 
@@ -85,12 +102,25 @@ public class MqttService {
             System.out.println("设备ID: " + deviceId);
             System.out.println("命令: " + command);
             System.out.println("数据: " + objectMapper.writeValueAsString(data));
-
+            
+            // 检查设备是否在线
+            DeviceStatusDTO device = deviceStatusMap.get(deviceId);
+            long now = System.currentTimeMillis();
+            boolean isOnline = false;
+            
+            if (device != null) {
+                isOnline = now - device.getLastActiveTime() <= 60000;
+                device.setOnline(isOnline);
+            }
+            
+            System.out.println("设备状态: " + (isOnline ? "在线" : "离线"));
+            
             Map<String, Object> payload = new HashMap<>();
             payload.put("type", "COMMAND");
             payload.put("command", command);
             payload.put("data", data);
             payload.put("timestamp", System.currentTimeMillis());
+            payload.put("deviceOnline", isOnline);
 
             String message = objectMapper.writeValueAsString(payload);
             String topic = "medicinebox/" + deviceId + "/command";

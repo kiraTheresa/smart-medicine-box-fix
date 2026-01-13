@@ -14,6 +14,7 @@ const NodeMCUSync = () => {
   const [configVisible, setConfigVisible] = useState(false);
   const [devices, setDevices] = useState([]);
   const [selectedCommand, setSelectedCommand] = useState('OPEN_BOX');
+  const [onlineCount, setOnlineCount] = useState(0);
 
   // 获取设备列表
   const fetchDevices = async () => {
@@ -23,10 +24,14 @@ const NodeMCUSync = () => {
         const deviceList = response.data.devices;
         setDevices(deviceList);
         
+        // 更新在线设备数量
+        setOnlineCount(response.data.onlineCount || 0);
+        
         // 如果没有选择设备，自动选择第一个
         if (deviceList.length > 0 && !deviceId) {
-          setDeviceId(deviceList[0]);
-          message.info(`自动选择设备: ${deviceList[0]}`);
+          const firstDevice = deviceList[0];
+          setDeviceId(firstDevice.deviceId || firstDevice);
+          message.info(`自动选择设备: ${firstDevice.deviceId || firstDevice}`);
         }
       }
     } catch (error) {
@@ -160,11 +165,22 @@ const NodeMCUSync = () => {
             placeholder="选择设备"
             showSearch
           >
-            {devices.map(device => (
-              <Option key={device} value={device}>
-                {device}
-              </Option>
-            ))}
+            {devices.map(device => {
+              const deviceIdValue = device.deviceId || device;
+              const isOnline = device.online || false;
+              return (
+                <Option 
+                  key={deviceIdValue} 
+                  value={deviceIdValue}
+                  style={{
+                    color: isOnline ? '#52c41a' : '#d9d9d9',
+                    fontWeight: isOnline ? 'bold' : 'normal'
+                  }}
+                >
+                  {deviceIdValue} {isOnline ? '(在线)' : '(离线)'}
+                </Option>
+              );
+            })}
           </Select>
           <Button 
             type="link" 
@@ -173,6 +189,9 @@ const NodeMCUSync = () => {
           >
             刷新设备列表
           </Button>
+          <span style={{ marginLeft: 16, color: '#1890ff', fontWeight: 'bold' }}>
+            在线设备: {onlineCount}/{devices.length}
+          </span>
         </div>
 
         {/* IP地址（可选） */}
