@@ -41,8 +41,8 @@ const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
       destroyOnClose
       okText={editingMedicine ? '更新' : '添加'}
       cancelText="取消"
-      okButtonProps={{ size: 'large', style={{ borderRadius: 8 } }}
-      cancelButtonProps={{ size: 'large', style={{ borderRadius: 8 } }}
+      okButtonProps={{ size: 'large', style: { borderRadius: 8 } }}
+      cancelButtonProps={{ size: 'large', style: { borderRadius: 8 } }}
     >
       <Alert
         message="填写说明"
@@ -186,13 +186,13 @@ const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
                 <Option value={1}>
                   <Space>
                     <span style={{ fontWeight: 500 }}>第1格</span>
-                    <Text type="secondary">（左侧）</Text>
+                    <Text type="secondary">(左侧)</Text>
                   </Space>
                 </Option>
                 <Option value={2}>
                   <Space>
                     <span style={{ fontWeight: 500 }}>第2格</span>
-                    <Text type="secondary">（右侧）</Text>
+                    <Text type="secondary">(右侧)</Text>
                   </Space>
                 </Option>
               </Select>
@@ -218,13 +218,13 @@ const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
                 <Option value={true}>
                   <Space>
                     <span style={{ color: 'var(--success-color)', fontWeight: 500 }}>启用</span>
-                    <Text type="secondary">（正常提醒）</Text>
+                    <Text type="secondary">(正常提醒)</Text>
                   </Space>
                 </Option>
                 <Option value={false}>
                   <Space>
                     <span style={{ color: 'var(--error-color)', fontWeight: 500 }}>停用</span>
-                    <Text type="secondary">（暂停提醒）</Text>
+                    <Text type="secondary">(暂停提醒)</Text>
                   </Space>
                 </Option>
               </Select>
