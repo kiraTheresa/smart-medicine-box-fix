@@ -7,6 +7,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   DashboardOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import './App.css';
 import MedicineList from './components/MedicineList';
@@ -41,7 +42,7 @@ const App = () => {
     },
     {
       key: 'devices',
-      icon: <DeviceOutlined />,
+      icon: <ToolOutlined />,
       label: '设备管理',
     },
     {

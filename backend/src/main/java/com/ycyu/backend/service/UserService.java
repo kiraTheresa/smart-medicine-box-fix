@@ -3,7 +3,6 @@ package com.ycyu.backend.service;
 import com.ycyu.backend.entity.User;
 import com.ycyu.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,9 +13,6 @@ public class UserService {
     
     @Autowired
     private UserRepository userRepository;
-    
-    @Autowired
-    private PasswordEncoder passwordEncoder;
     
     // 注册新用户
     public User register(User user) {
