@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, message, Alert, Modal, Space, Select, Tag, Descriptions } from 'antd';
-import { SyncOutlined, CodeOutlined, WifiOutlined, SendOutlined, InfoCircleOutlined, ClockCircleOutlined, EventOutlined } from '@ant-design/icons';
+import { SyncOutlined, CodeOutlined, WifiOutlined, SendOutlined, InfoCircleOutlined, ClockCircleOutlined, CalendarOutlined } from '@ant-design/icons';
 import { nodemcuApi, offlineEventApi } from '../services/api';
 import dayjs from 'dayjs';
 
@@ -274,7 +274,7 @@ const NodeMCUSync = () => {
                 {selectedDeviceDetails.localConfigVersion || '1.0'}
               </Descriptions.Item>
               <Descriptions.Item label="离线事件数">
-                <EventOutlined /> {selectedDeviceDetails.offlineEventsCount || 0}
+                <CalendarOutlined /> {selectedDeviceDetails.offlineEventsCount || 0}
               </Descriptions.Item>
               <Descriptions.Item label="设备类型" span={2}>
                 {selectedDeviceDetails.deviceType || 'medicinebox'}
@@ -285,7 +285,7 @@ const NodeMCUSync = () => {
             {deviceEvents.length > 0 && (
               <div style={{ marginTop: 16 }}>
                 <h5 style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
-                  <EventOutlined style={{ marginRight: 8 }} />
+                  <CalendarOutlined style={{ marginRight: 8 }} />
                   最近离线事件 ({deviceEvents.length})
                 </h5>
                 <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 4, padding: 8 }}>

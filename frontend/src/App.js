@@ -7,7 +7,6 @@ import {
   UserOutlined,
   LogoutOutlined,
   DashboardOutlined,
-  DeviceOutlined,
 } from '@ant-design/icons';
 import './App.css';
 import MedicineList from './components/MedicineList';
