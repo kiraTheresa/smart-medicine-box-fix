@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Menu, Typography, Space, Button } from 'antd';
+import { Layout, Menu, Typography, Space, Button, Avatar, Dropdown, Badge } from 'antd';
 import {
   MedicineBoxOutlined,
   SettingOutlined,
@@ -8,6 +8,10 @@ import {
   DashboardOutlined,
   ControlOutlined,
   BellOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  HomeOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import './App.css';
 import MedicineList from './components/MedicineList';
@@ -19,10 +23,11 @@ import Login from './components/Login';
 import webSocketService from './services/websocket';
 
 const { Header, Content, Sider } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('medicines');
+  const [collapsed, setCollapsed] = useState(false);
   const { user, logout, isAdmin, isAuthenticated } = useAuth();
   const hasConnectedRef = React.useRef(false);
 
@@ -47,12 +52,10 @@ const App = () => {
     };
   }, [isAuthenticated]);
 
-  // 如果用户未登录，显示登录页面
   if (!isAuthenticated()) {
     return <Login />;
   }
 
-  // 管理员端菜单
   const adminMenuItems = [
     {
       key: 'medicines',
@@ -71,7 +74,6 @@ const App = () => {
     },
   ];
 
-  // 用户端菜单（面向老年人，简化操作）
   const userMenuItems = [
     {
       key: 'medicines',
@@ -85,7 +87,6 @@ const App = () => {
     },
   ];
 
-  // 根据用户角色选择菜单
   const menuItems = isAdmin() ? adminMenuItems : userMenuItems;
 
   const handleMenuClick = (e) => {
@@ -102,49 +103,105 @@ const App = () => {
         return <NotificationTest />;
       default:
         return (
-          <div style={{ padding: '20px' }}>
-            <Typography.Title level={3}>智能药盒管理系统</Typography.Title>
-            <p>请选择左侧菜单进行操作</p>
+          <div className="animate-fade-in">
+            <div className="page-header">
+              <h1>欢迎使用智能药盒管理系统</h1>
+            </div>
+            <div className="card-grid">
+              <div className="stat-card">
+                <div className="stat-label">药品总数</div>
+                <div className="stat-value">0</div>
+                <div className="stat-description">当前系统中的药品数量</div>
+              </div>
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+                <div className="stat-label">今日提醒</div>
+                <div className="stat-value">0</div>
+                <div className="stat-description">今日需要服用的药品</div>
+              </div>
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+                <div className="stat-label">在线设备</div>
+                <div className="stat-value">0</div>
+                <div className="stat-description">当前连接的设备数量</div>
+              </div>
+            </div>
           </div>
         );
     }
   };
 
+  const userMenu = (
+    <Menu>
+      <Menu.Item key="profile" icon={<UserOutlined />}>
+        <Text>个人资料</Text>
+      </Menu.Item>
+      <Menu.Item key="settings" icon={<SettingOutlined />}>
+        <Text>系统设置</Text>
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={logout} danger>
+        <Text>退出登录</Text>
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ background: '#fff', padding: '0 20px', boxShadow: '0 2px 8px #f0f1f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Space>
-          <MedicineBoxOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
-          <Title level={4} style={{ margin: 0 }}>
-            {isAdmin() ? '智能药盒管理系统 - 管理员端' : '智能药盒管理系统 - 用户端'}
-          </Title>
-        </Space>
-        <Space>
-          <NotificationComponent />
-          <Space size="small">
-            <UserOutlined />
-            <span>{user?.name}</span>
-            <Button type="text" danger icon={<LogoutOutlined />} onClick={logout}>
-              登出
-            </Button>
-          </Space>
-        </Space>
-      </Header>
-      <Layout>
-        <Sider width={200} style={{ background: '#fff' }}>
-          <Menu
-            mode="inline"
-            selectedKeys={[currentPage]}
-            items={menuItems}
-            onClick={handleMenuClick}
-            style={{ height: '100%', borderRight: 0 }}
-          />
-        </Sider>
-        <Layout style={{ padding: '24px' }}>
-          <Content style={{ background: '#fff', padding: '24px' }}>
+    <Layout className="app-layout">
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        className="app-sider"
+        width={240}
+        collapsedWidth={64}
+      >
+        <div className="logo-container">
+          <MedicineBoxOutlined className="logo-icon" />
+          {!collapsed && <span className="logo-text">智能药盒</span>}
+        </div>
+        <Menu
+          mode="inline"
+          selectedKeys={[currentPage]}
+          items={menuItems}
+          onClick={handleMenuClick}
+          className="app-menu"
+        />
+      </Sider>
+      
+      <Layout className="app-main">
+        <Header className="app-header">
+          <div className="header-left">
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              className="collapse-button"
+            />
+            <Space className="header-title">
+              <HomeOutlined />
+              <Title level={4} style={{ margin: 0 }}>
+                {isAdmin() ? '管理员端' : '用户端'}
+              </Title>
+            </Space>
+          </div>
+          
+          <div className="header-right">
+            <Space size="large">
+              <NotificationComponent />
+              <Dropdown overlay={userMenu} placement="bottomRight">
+                <div className="user-info">
+                  <Avatar icon={<UserOutlined />} className="user-avatar" />
+                  <span className="user-name">{user?.name}</span>
+                </div>
+              </Dropdown>
+            </Space>
+          </div>
+        </Header>
+        
+        <Content className="app-content">
+          <div className="content-wrapper animate-fade-in">
             {renderContent()}
-          </Content>
-        </Layout>
+          </div>
+        </Content>
       </Layout>
     </Layout>
   );

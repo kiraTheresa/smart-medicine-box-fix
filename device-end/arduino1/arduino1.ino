@@ -311,15 +311,23 @@ void handleShortPress() {
     // 紧急状态下忽略短按
     
   } else {
-    // 切换药格
-    currentBox = (currentBox == 1) ? 2 : 1;
-    Serial.print("OK:BOX");
-    Serial.println(currentBox);
+    // 打开或关闭当前药格
+    bool boxToToggle = (currentBox == 1) ? box1Open : box2Open;
+    
+    if (!boxToToggle) {
+      openBox(currentBox);
+      currentState = STATE_MANUAL_OPEN;
+    } else {
+      closeBox(currentBox);
+      currentState = STATE_MANUAL_CLOSE;
+    }
+    
+    manualOperationTime = millis();
     playToggleTone();
     
-    // 发送切换药格命令到NodeMCU
+    // 发送操作命令到NodeMCU
     char boxCmd[20];
-    snprintf(boxCmd, sizeof(boxCmd), "SET_BOX:%d", currentBox);
+    snprintf(boxCmd, sizeof(boxCmd), "%s%d", boxToToggle ? "CLOSE" : "OPEN", currentBox);
     Serial.println(boxCmd);
   }
 }
@@ -615,11 +623,11 @@ void triggerEmergency() {
 // ===================== 药盒控制函数 =====================
 void openBox(int boxNum) {
   if (boxNum == 1) {
-    medicineServo1.write(90);
+    medicineServo1.write(120);
     box1Open = true;
     digitalWrite(LED1_PIN, HIGH);
   } else if (boxNum == 2) {
-    medicineServo2.write(90);
+    medicineServo2.write(120);
     box2Open = true;
     digitalWrite(LED2_PIN, HIGH);
   }

@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Tag, Switch, Modal, message, Alert } from 'antd';
+import { Table, Button, Space, Tag, Switch, Modal, message, Alert, Card, Typography, Row, Col, Statistic } from 'antd';
 import { 
   EditOutlined, 
   DeleteOutlined, 
   ClockCircleOutlined,
-  MedicineBoxOutlined 
+  MedicineBoxOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import { medicineApi } from '../services/api';
 import MedicineForm from './MedicineForm';
 import dayjs from 'dayjs';
+
+const { Title } = Typography;
 
 const MedicineList = ({ onSync }) => {
   const [medicines, setMedicines] = useState([]);
@@ -23,12 +28,12 @@ const MedicineList = ({ onSync }) => {
       key: 'name',
       render: (text, record) => (
         <Space>
-          <MedicineBoxOutlined />
-          <span>{text}</span>
+          <MedicineBoxOutlined style={{ color: 'var(--primary-color)', fontSize: 18 }} />
+          <span style={{ fontWeight: 500 }}>{text}</span>
           {record.enabled ? (
-            <Tag color="green">启用</Tag>
+            <Tag color="success" style={{ borderRadius: 12 }}>启用</Tag>
           ) : (
-            <Tag color="red">停用</Tag>
+            <Tag color="error" style={{ borderRadius: 12 }}>停用</Tag>
           )}
         </Space>
       ),
@@ -37,14 +42,19 @@ const MedicineList = ({ onSync }) => {
       title: '剂量',
       dataIndex: 'dosage',
       key: 'dosage',
+      render: (text) => (
+        <Tag color="blue" style={{ borderRadius: 8 }}>{text}</Tag>
+      ),
     },
     {
       title: '服药时间',
       key: 'time',
       render: (_, record) => (
         <Space>
-          <ClockCircleOutlined />
-          {`${record.hour.toString().padStart(2, '0')}:${record.minute.toString().padStart(2, '0')}`}
+          <ClockCircleOutlined style={{ color: 'var(--warning-color)' }} />
+          <span style={{ fontWeight: 500 }}>
+            {`${record.hour.toString().padStart(2, '0')}:${record.minute.toString().padStart(2, '0')}`}
+          </span>
         </Space>
       ),
     },
@@ -53,7 +63,10 @@ const MedicineList = ({ onSync }) => {
       dataIndex: 'boxNum',
       key: 'boxNum',
       render: (boxNum) => (
-        <Tag color={boxNum === 1 ? 'blue' : 'purple'}>
+        <Tag 
+          color={boxNum === 1 ? 'geekblue' : boxNum === 2 ? 'purple' : 'cyan'} 
+          style={{ borderRadius: 8, fontWeight: 500 }}
+        >
           第{boxNum}格
         </Tag>
       ),
@@ -66,6 +79,8 @@ const MedicineList = ({ onSync }) => {
         <Switch
           checked={enabled}
           onChange={() => handleToggleStatus(record.id)}
+          checkedChildren="启用"
+          unCheckedChildren="停用"
         />
       ),
     },
@@ -79,14 +94,16 @@ const MedicineList = ({ onSync }) => {
             icon={<EditOutlined />}
             size="small"
             onClick={() => handleEdit(record)}
+            style={{ borderRadius: 6 }}
           >
             编辑
           </Button>
           <Button
-            type="danger"
+            danger
             icon={<DeleteOutlined />}
             size="small"
             onClick={() => handleDelete(record.id)}
+            style={{ borderRadius: 6 }}
           >
             删除
           </Button>
@@ -132,6 +149,7 @@ const MedicineList = ({ onSync }) => {
       content: '确定要删除这个药品吗？',
       okText: '确定',
       cancelText: '取消',
+      okButtonProps: { danger: true },
       onOk: async () => {
         try {
           await medicineApi.delete(id);
@@ -166,21 +184,74 @@ const MedicineList = ({ onSync }) => {
     setEditingMedicine(null);
   };
 
+  const enabledCount = medicines.filter(m => m.enabled).length;
+  const totalCount = medicines.length;
+
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ marginBottom: '16px' }}>
-        <Space>
-          <Button type="primary" onClick={() => setFormVisible(true)}>
+    <div className="animate-fade-in">
+      <div className="page-header">
+        <div>
+          <Title level={2} style={{ margin: 0 }}>药品管理</Title>
+          <span style={{ color: 'var(--text-secondary)' }}>管理您的药品信息和服药提醒</span>
+        </div>
+        <div className="page-header-actions">
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />}
+            onClick={() => setFormVisible(true)}
+            size="large"
+          >
             添加药品
           </Button>
-          <Button onClick={onSync}>
-            同步到NodeMCU
+          <Button 
+            icon={<SyncOutlined />}
+            onClick={onSync}
+            size="large"
+          >
+            同步到设备
           </Button>
-          <Button onClick={fetchMedicines} loading={loading}>
+          <Button 
+            icon={<ReloadOutlined />}
+            onClick={fetchMedicines}
+            loading={loading}
+            size="large"
+          >
             刷新
           </Button>
-        </Space>
+        </div>
       </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={8}>
+          <Card className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <Statistic
+              title="药品总数"
+              value={totalCount}
+              prefix={<MedicineBoxOutlined />}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+            <Statistic
+              title="启用药品"
+              value={enabledCount}
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+            <Statistic
+              title="停用药品"
+              value={totalCount - enabledCount}
+              valueStyle={{ color: '#fff' }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {medicines.length === 0 && !loading && (
         <Alert
@@ -188,17 +259,24 @@ const MedicineList = ({ onSync }) => {
           description="点击添加药品按钮来添加第一个药品"
           type="info"
           showIcon
-          style={{ marginBottom: '16px' }}
+          style={{ marginBottom: 24, borderRadius: 12 }}
         />
       )}
 
-      <Table
-        columns={columns}
-        dataSource={medicines}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
+      <Card className="medicine-table-card">
+        <Table
+          columns={columns}
+          dataSource={medicines}
+          rowKey="id"
+          loading={loading}
+          pagination={{ 
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`
+          }}
+        />
+      </Card>
 
       <MedicineForm
         open={formVisible}

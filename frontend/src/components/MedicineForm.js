@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Space } from 'antd';
-import { ClockCircleOutlined, MedicineBoxOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Space, Typography, Divider, Alert } from 'antd';
+import { ClockCircleOutlined, MedicineBoxOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
+const { Title, Text } = Typography;
 
 const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
   const [form] = Form.useForm();
@@ -23,26 +24,54 @@ const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
     });
   };
 
-  const formItemLayout = {
-    labelCol: { span: 6 },
-    wrapperCol: { span: 18 },
-  };
-
   return (
     <Modal
-      title={editingMedicine ? '编辑药品' : '添加药品'}
+      title={
+        <Space>
+          <MedicineBoxOutlined style={{ fontSize: 20, color: 'var(--primary-color)' }} />
+          <Title level={4} style={{ margin: 0 }}>
+            {editingMedicine ? '编辑药品' : '添加药品'}
+          </Title>
+        </Space>
+      }
       open={open}
       onOk={handleSubmit}
       onCancel={onCancel}
-      width={600}
-      destroyOnHidden
+      width={700}
+      destroyOnClose
+      okText={editingMedicine ? '更新' : '添加'}
+      cancelText="取消"
+      okButtonProps={{ size: 'large', style={{ borderRadius: 8 } }}
+      cancelButtonProps={{ size: 'large', style={{ borderRadius: 8 } }}
     >
-      <Form form={form} {...formItemLayout}>
+      <Alert
+        message="填写说明"
+        description="请完整填写药品信息，所有带 * 的字段为必填项"
+        type="info"
+        showIcon
+        icon={<InfoCircleOutlined />}
+        style={{ marginBottom: 24, borderRadius: 8 }}
+      />
+
+      <Form 
+        form={form} 
+        layout="vertical"
+        requiredMark="optional"
+      >
+        <Divider orientation="left" style={{ fontSize: 14, fontWeight: 500 }}>
+          基本信息
+        </Divider>
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="name"
-              label="药品名称"
+              label={
+                <Space>
+                  <Text strong>药品名称</Text>
+                  <Text type="danger">*</Text>
+                </Space>
+              }
               rules={[
                 { required: true, message: '请输入药品名称' },
                 { max: 50, message: '名称最多50个字符' }
@@ -51,38 +80,59 @@ const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
               <Input 
                 placeholder="例如：降压药" 
                 prefix={<MedicineBoxOutlined />}
+                size="large"
+                style={{ borderRadius: 8 }}
               />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="dosage"
-              label="剂量"
+              label={
+                <Space>
+                  <Text strong>剂量</Text>
+                  <Text type="danger">*</Text>
+                </Space>
+              }
               rules={[
                 { required: true, message: '请输入剂量' },
                 { max: 20, message: '剂量最多20个字符' }
               ]}
             >
-              <Input placeholder="例如：1片" />
+              <Input 
+                placeholder="例如：1片" 
+                size="large"
+                style={{ borderRadius: 8 }}
+              />
             </Form.Item>
           </Col>
         </Row>
+
+        <Divider orientation="left" style={{ fontSize: 14, fontWeight: 500 }}>
+          服药时间设置
+        </Divider>
 
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="hour"
-              label="小时"
+              label={
+                <Space>
+                  <Text strong>小时</Text>
+                  <Text type="danger">*</Text>
+                </Space>
+              }
               rules={[
                 { required: true, message: '请选择小时' },
                 { type: 'number', min: 0, max: 23, message: '小时必须在0-23之间' }
               ]}
             >
               <InputNumber 
-                style={{ width: '100%' }} 
+                style={{ width: '100%', borderRadius: 8 }} 
                 placeholder="0-23"
                 min={0}
                 max={23}
+                size="large"
                 addonBefore={<ClockCircleOutlined />}
               />
             </Form.Item>
@@ -90,48 +140,112 @@ const MedicineForm = ({ open, editingMedicine, onSubmit, onCancel }) => {
           <Col span={12}>
             <Form.Item
               name="minute"
-              label="分钟"
+              label={
+                <Space>
+                  <Text strong>分钟</Text>
+                  <Text type="danger">*</Text>
+                </Space>
+              }
               rules={[
                 { required: true, message: '请选择分钟' },
                 { type: 'number', min: 0, max: 59, message: '分钟必须在0-59之间' }
               ]}
             >
               <InputNumber 
-                style={{ width: '100%' }} 
+                style={{ width: '100%', borderRadius: 8 }} 
                 placeholder="0-59"
                 min={0}
                 max={59}
+                size="large"
               />
             </Form.Item>
           </Col>
         </Row>
 
+        <Divider orientation="left" style={{ fontSize: 14, fontWeight: 500 }}>
+          药格子设置
+        </Divider>
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="boxNum"
-              label="药格编号"
+              label={
+                <Space>
+                  <Text strong>药格编号</Text>
+                  <Text type="danger">*</Text>
+                </Space>
+              }
               rules={[{ required: true, message: '请选择药格' }]}
             >
-              <Select placeholder="选择药格">
-                <Option value={1}>第1格</Option>
-                <Option value={2}>第2格</Option>
+              <Select 
+                placeholder="选择药格" 
+                size="large"
+                style={{ borderRadius: 8 }}
+              >
+                <Option value={1}>
+                  <Space>
+                    <span style={{ fontWeight: 500 }}>第1格</span>
+                    <Text type="secondary">（左侧）</Text>
+                  </Space>
+                </Option>
+                <Option value={2}>
+                  <Space>
+                    <span style={{ fontWeight: 500 }}>第2格</span>
+                    <Text type="secondary">（右侧）</Text>
+                  </Space>
+                </Option>
               </Select>
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="enabled"
-              label="启用状态"
-              valuePropName="checked"
+              label={
+                <Space>
+                  <Text strong>启用状态</Text>
+                  <Text type="danger">*</Text>
+                </Space>
+              }
+              initialValue={true}
+              rules={[{ required: true, message: '请选择状态' }]}
             >
-              <Select placeholder="选择状态">
-                <Option value={true}>启用</Option>
-                <Option value={false}>停用</Option>
+              <Select 
+                placeholder="选择状态" 
+                size="large"
+                style={{ borderRadius: 8 }}
+              >
+                <Option value={true}>
+                  <Space>
+                    <span style={{ color: 'var(--success-color)', fontWeight: 500 }}>启用</span>
+                    <Text type="secondary">（正常提醒）</Text>
+                  </Space>
+                </Option>
+                <Option value={false}>
+                  <Space>
+                    <span style={{ color: 'var(--error-color)', fontWeight: 500 }}>停用</span>
+                    <Text type="secondary">（暂停提醒）</Text>
+                  </Space>
+                </Option>
               </Select>
             </Form.Item>
           </Col>
         </Row>
+
+        <Alert
+          message="温馨提示"
+          description={
+            <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>
+              <li>请确保服药时间设置准确，系统将按此时间提醒您</li>
+              <li>药格编号对应智能药盒的实际格子位置</li>
+              <li>停用状态的药品不会触发提醒通知</li>
+              <li>添加后可随时编辑或删除药品信息</li>
+            </ul>
+          }
+          type="success"
+          showIcon
+          style={{ marginTop: 16, borderRadius: 8 }}
+        />
       </Form>
     </Modal>
   );
