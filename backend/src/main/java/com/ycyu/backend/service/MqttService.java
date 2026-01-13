@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ycyu.backend.dto.DeviceStatusDTO;
 import com.ycyu.backend.dto.MedicineDTO;
+import com.ycyu.backend.service.DeviceEventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,9 @@ public class MqttService {
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private DeviceEventService deviceEventService;
 
     // 存储设备状态
     private final Map<String, DeviceStatusDTO> deviceStatusMap = new ConcurrentHashMap<>();
@@ -29,10 +33,16 @@ public class MqttService {
 
         // 检查所有设备的在线状态
         for (DeviceStatusDTO device : deviceStatusMap.values()) {
+            boolean wasOnline = device.isOnline();
             // 更新设备在线状态（超过60秒无心跳则标记为离线）
             boolean isOnline = now - device.getLastActiveTime() <= 60000;
             device.setOnline(isOnline);
             devices.add(device);
+            
+            // 如果设备状态发生变化，触发状态变化事件
+            if (wasOnline != isOnline) {
+                deviceEventService.handleDeviceStatusChange(device.getDeviceId(), isOnline);
+            }
         }
 
         return devices;
@@ -42,6 +52,7 @@ public class MqttService {
     public void updateDeviceStatus(String deviceId) {
         long now = System.currentTimeMillis();
         DeviceStatusDTO device = deviceStatusMap.get(deviceId);
+        boolean wasOnline = device != null && device.isOnline();
         
         if (device == null) {
             // 新设备，创建状态记录
@@ -61,6 +72,11 @@ public class MqttService {
         device.setOnline(true);
         deviceStatusMap.put(deviceId, device);
         System.out.println("📱 设备在线: " + deviceId);
+        
+        // 如果设备之前是离线状态，现在上线了，触发状态变化事件
+        if (!wasOnline) {
+            deviceEventService.handleDeviceStatusChange(deviceId, true);
+        }
     }
     
     // 更新设备离线模式状态
@@ -139,6 +155,8 @@ public class MqttService {
             mqttGateway.sendToMqtt(topic, 1, message);
             // 更新设备最后同步时间
             updateLastSyncTime(deviceId);
+            // 触发配置同步事件
+            deviceEventService.handleConfigSync(deviceId, true);
             System.out.println("✅ 同步命令已发送");
 
         } catch (JsonProcessingException e) {

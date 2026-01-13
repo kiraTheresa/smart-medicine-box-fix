@@ -8,6 +8,7 @@ import {
 import './App.css';
 import MedicineList from './components/MedicineList';
 import NodeMCUSync from './components/NodeMCUSync';
+import NotificationComponent from './components/NotificationComponent';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -64,10 +65,13 @@ const App = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ background: '#fff', padding: '0 20px', boxShadow: '0 2px 8px #f0f1f2' }}>
+      <Header style={{ background: '#fff', padding: '0 20px', boxShadow: '0 2px 8px #f0f1f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
           <MedicineBoxOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
           <Title level={4} style={{ margin: 0 }}>智能药盒管理系统</Title>
+        </Space>
+        <Space>
+          <NotificationComponent />
         </Space>
       </Header>
       <Layout>
