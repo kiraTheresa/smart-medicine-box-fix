@@ -48,12 +48,66 @@ public class MqttService {
             device = new DeviceStatusDTO();
             device.setDeviceId(deviceId);
             device.setStatusMessage("设备已连接");
+            device.setOfflineModeEnabled(true); // 默认启用离线模式
+            device.setLastSyncTime(now);
+            device.setLocalConfigVersion("1.0");
+            device.setOfflineEventsCount(0);
+            device.setLastEventTime(now);
+            device.setDeviceType("medicinebox");
+            device.setFirmwareVersion("V8.3");
         }
         
         device.setLastActiveTime(now);
         device.setOnline(true);
         deviceStatusMap.put(deviceId, device);
         System.out.println("📱 设备在线: " + deviceId);
+    }
+    
+    // 更新设备离线模式状态
+    public void updateDeviceOfflineStatus(String deviceId, boolean offlineModeEnabled) {
+        long now = System.currentTimeMillis();
+        DeviceStatusDTO device = deviceStatusMap.get(deviceId);
+        
+        if (device == null) {
+            device = new DeviceStatusDTO();
+            device.setDeviceId(deviceId);
+            device.setOnline(false);
+            device.setLastActiveTime(now);
+        }
+        
+        device.setOfflineModeEnabled(offlineModeEnabled);
+        deviceStatusMap.put(deviceId, device);
+        System.out.println("📱 设备离线模式: " + (offlineModeEnabled ? "已启用" : "已禁用") + " 设备ID: " + deviceId);
+    }
+    
+    // 记录设备离线事件
+    public void recordOfflineEvent(String deviceId) {
+        long now = System.currentTimeMillis();
+        DeviceStatusDTO device = deviceStatusMap.get(deviceId);
+        
+        if (device == null) {
+            device = new DeviceStatusDTO();
+            device.setDeviceId(deviceId);
+            device.setOnline(false);
+            device.setLastActiveTime(now);
+        }
+        
+        device.setOfflineEventsCount(device.getOfflineEventsCount() + 1);
+        device.setLastEventTime(now);
+        deviceStatusMap.put(deviceId, device);
+        System.out.println("📱 设备离线事件记录: " + deviceId + " 事件数: " + device.getOfflineEventsCount());
+    }
+    
+    // 更新设备最后同步时间
+    public void updateLastSyncTime(String deviceId) {
+        long now = System.currentTimeMillis();
+        DeviceStatusDTO device = deviceStatusMap.get(deviceId);
+        
+        if (device != null) {
+            device.setLastSyncTime(now);
+            deviceStatusMap.put(deviceId, device);
+            System.out.println("📱 设备同步时间更新: " + deviceId + " 时间: " + now);
+        }
     }
 
     // 同步药品配置到指定设备
@@ -83,6 +137,8 @@ public class MqttService {
             System.out.println("消息内容: " + message);
 
             mqttGateway.sendToMqtt(topic, 1, message);
+            // 更新设备最后同步时间
+            updateLastSyncTime(deviceId);
             System.out.println("✅ 同步命令已发送");
 
         } catch (JsonProcessingException e) {

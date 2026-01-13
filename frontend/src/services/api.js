@@ -33,3 +33,11 @@ export const nodemcuApi = {
     }),
   getDevices: () => api.get('/nodemcu/devices'),
 };
+
+export const offlineEventApi = {
+  getDeviceEvents: (deviceId) => api.get(`/api/offline-events/device/${deviceId}`),
+  getUnprocessedEvents: () => api.get('/api/offline-events/unprocessed'),
+  processEvent: (eventId) => api.post(`/api/offline-events/process/${eventId}`),
+  processDeviceEvents: (deviceId) => api.post(`/api/offline-events/process/device/${deviceId}`),
+  deleteDeviceEvents: (deviceId) => api.delete(`/api/offline-events/device/${deviceId}`),
+};
