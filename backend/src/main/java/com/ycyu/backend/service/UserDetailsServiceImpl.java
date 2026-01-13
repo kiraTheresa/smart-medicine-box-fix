@@ -30,10 +30,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         // 添加角色权限，需要前缀ROLE_
         authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
         
-        // 返回UserDetails对象
+        // 返回UserDetails对象，使用明文密码
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getPassword(),
+                user.getPassword(),  // 数据库中的明文密码
                 user.isEnabled(),
                 true, // 账户未过期
                 true, // 凭证未过期

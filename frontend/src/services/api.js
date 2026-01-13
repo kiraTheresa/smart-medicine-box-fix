@@ -9,13 +9,10 @@ const api = axios.create({
   },
 });
 
-// 请求拦截器，自动添加认证令牌
+// 请求拦截器（简化版，不使用JWT）
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // 不添加认证令牌
     return config;
   },
   (error) => {
@@ -23,14 +20,11 @@ api.interceptors.request.use(
   }
 );
 
-// 响应拦截器，处理令牌过期等情况
+// 响应拦截器（简化版，不使用JWT）
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.reload();
-    }
+    // 简化错误处理，不检查401状态码
     return Promise.reject(error);
   }
 );

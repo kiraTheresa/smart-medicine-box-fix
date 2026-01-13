@@ -10,45 +10,53 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 检查本地存储中的令牌
+  // 检查本地存储中的用户信息（简化版，不使用JWT）
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetchCurrentUser(token);
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setUser(user);
     } else {
       setLoading(false);
     }
   }, []);
 
-  // 获取当前用户信息
+  // 获取当前用户信息（简化版，直接返回存储的用户信息）
   const fetchCurrentUser = async (token) => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      setUser(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch current user:', error);
-      localStorage.removeItem('token');
-      setLoading(false);
+    // 直接从本地存储获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
     }
+    setLoading(false);
   };
 
-  // 登录
+  // 登录（简化版，不使用JWT）
   const login = async (username, password) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         username,
         password,
       });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      message.success('登录成功');
-      return true;
+      const { success, user, message, errorType } = response.data;
+      
+      if (success) {
+        // 直接存储用户信息，不存储令牌
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+        message.success('登录成功');
+        return true;
+      } else {
+        // 根据错误类型显示不同的错误信息
+        if (errorType === 'USER_NOT_FOUND') {
+          message.error('用户名不存在，请检查用户名');
+        } else if (errorType === 'PASSWORD_INCORRECT') {
+          message.error('密码错误，请检查密码');
+        } else {
+          message.error('登录失败，请检查用户名和密码');
+        }
+        return false;
+      }
     } catch (error) {
       console.error('Login failed:', error);
       message.error('登录失败，请检查用户名和密码');
@@ -69,9 +77,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 登出
+  // 登出（简化版，不使用JWT）
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     message.success('登出成功');
   };

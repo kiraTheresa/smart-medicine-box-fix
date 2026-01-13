@@ -20,8 +20,7 @@ public class UserService {
     
     // 注册新用户
     public User register(User user) {
-        // 密码加密
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // 直接存储密码，不加密
         // 设置默认角色为USER
         if (user.getRole() == null || user.getRole().isEmpty()) {
             user.setRole("USER");

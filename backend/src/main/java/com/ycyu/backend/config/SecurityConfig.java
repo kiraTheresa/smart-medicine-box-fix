@@ -1,7 +1,6 @@
 package com.ycyu.backend.config;
 
 import com.ycyu.backend.service.UserDetailsServiceImpl;
-import com.ycyu.backend.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,15 +25,13 @@ import java.util.Arrays;
 public class SecurityConfig {
     
     @Autowired
-    private JwtUtils jwtUtils;
-    
-    @Autowired
     private UserDetailsServiceImpl userDetailsService;
     
-    // 配置密码加密器
+    // 配置密码编码器（使用明文密码）
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // 使用NoOpPasswordEncoder，不进行密码编码
+        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
     }
     
     // 配置认证管理器
@@ -54,39 +51,36 @@ public class SecurityConfig {
             // 配置CORS - 使用全局配置
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             // 配置授权规则
-            .authorizeHttpRequests(auth -> auth
-                // 允许所有请求访问登录和注册接口
-                .requestMatchers("/api/auth/**").permitAll()
-                // 允许WebSocket请求
-                .requestMatchers("/ws/**").permitAll()
-                // 允许静态资源请求
-                .requestMatchers("/static/**").permitAll()
-                .requestMatchers("/index.html").permitAll()
-                
-                // 药品相关API - 管理员拥有所有权限，用户只能查看
-                .requestMatchers(HttpMethod.GET, "/api/medicines/**").authenticated()
-                .requestMatchers("/api/medicines/**").hasRole("ADMIN")
-                
-                // 设备相关API - 管理员拥有所有权限，用户只能查看
-                .requestMatchers(HttpMethod.GET, "/api/nodemcu/config", "/api/nodemcu/devices").authenticated()
-                .requestMatchers("/api/nodemcu/**").hasRole("ADMIN")
-                
-                // 离线事件API - 管理员拥有所有权限，用户只能查看自己设备的事件
-                .requestMatchers(HttpMethod.GET, "/api/offline-events/device/**").authenticated()
-                .requestMatchers("/api/offline-events/**").hasRole("ADMIN")
-                
-                // 管理员专属接口
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                
-                // 用户专属接口
-                .requestMatchers("/api/user/**").hasRole("USER")
-                
-                // 其他接口需要认证
-                .anyRequest().authenticated()
-            );
-        
-        // 添加JWT认证过滤器
-        http.addFilterBefore(new JwtAuthenticationFilter(jwtUtils, userDetailsService), UsernamePasswordAuthenticationFilter.class);
+        .authorizeHttpRequests(auth -> auth
+            // 允许所有请求访问登录和注册接口
+            .requestMatchers("/api/auth/**").permitAll()
+            // 允许WebSocket请求
+            .requestMatchers("/ws/**").permitAll()
+            // 允许静态资源请求
+            .requestMatchers("/static/**").permitAll()
+            .requestMatchers("/index.html").permitAll()
+            
+            // 药品相关API - 管理员拥有所有权限，用户只能查看
+            .requestMatchers(HttpMethod.GET, "/api/medicines/**").authenticated()
+            .requestMatchers("/api/medicines/**").hasRole("ADMIN")
+            
+            // 设备相关API - 管理员拥有所有权限，用户只能查看
+            .requestMatchers(HttpMethod.GET, "/api/nodemcu/config", "/api/nodemcu/devices").authenticated()
+            .requestMatchers("/api/nodemcu/**").hasRole("ADMIN")
+            
+            // 离线事件API - 管理员拥有所有权限，用户只能查看自己设备的事件
+            .requestMatchers(HttpMethod.GET, "/api/offline-events/device/**").authenticated()
+            .requestMatchers("/api/offline-events/**").hasRole("ADMIN")
+            
+            // 管理员专属接口
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+            
+            // 用户专属接口
+            .requestMatchers("/api/user/**").hasRole("USER")
+            
+            // 其他接口需要认证
+            .anyRequest().authenticated()
+        );
         
         return http.build();
     }
