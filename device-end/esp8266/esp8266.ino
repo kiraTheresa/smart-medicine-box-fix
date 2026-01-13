@@ -147,9 +147,17 @@ void showMainScreen() {
   drawText(0, 28, "当前:");
   if (med.enabled && !med.taken) {
     String medInfo = String(med.name) + "(格" + med.boxNum + ")";
-    if (medInfo.length() > 10) {
-      medInfo = medInfo.substring(0, 10) + "..";
+    int availableWidth = 128 - 36; // 从x=36到屏幕右侧的可用宽度
+    
+    // 计算完整字符串的显示宽度
+    int textWidth = u8g2.getUTF8Width(medInfo.c_str());
+    
+    // 如果宽度超过可用空间，逐步截断直到合适
+    while (textWidth > availableWidth && medInfo.length() > 2) {
+      medInfo = medInfo.substring(0, medInfo.length() - 1);
+      textWidth = u8g2.getUTF8Width(medInfo.c_str());
     }
+    
     drawText(36, 28, medInfo.c_str());
   } else {
     drawText(36, 28, "无");
@@ -544,49 +552,36 @@ void connectMQTT() {
   
   bool wasConnected = mqttConnected;
   
-  int attempts = 0;
-  while (!mqttClient.connected() && attempts < 5) {
-    attempts++;
-    Serial.print("MQTT连接尝试 #");
-    Serial.print(attempts);
-    Serial.print("...");
-    
-    String clientId = "NodeMCU-" + deviceId;
-    
-    if (mqttClient.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
-      Serial.println("成功");
-      
-      // 订阅主题
-      bool sub1 = mqttClient.subscribe(topicConfig.c_str(), 1);
-      bool sub2 = mqttClient.subscribe(topicCommand.c_str(), 1);
-      bool sub3 = mqttClient.subscribe("medicinebox/broadcast", 1);
-      
-      Serial.print("订阅状态: config=");
-      Serial.print(sub1 ? "成功 " : "失败 ");
-      Serial.print("command=");
-      Serial.print(sub2 ? "成功 " : "失败 ");
-      Serial.print("broadcast=");
-      Serial.println(sub3 ? "成功" : "失败");
-      
-      mqttConnected = true;
-      displayDirty = true;
-      
-      // 发送连接成功消息
-      sendMqttResponse("CONNECTED", "设备已连接");
-      sendDeviceInfo();
-      
-      showSyncScreen(true, "MQTT已连接");
-      
-      break;
-    } else {
-      Serial.print("失败，状态码: ");
-      Serial.println(mqttClient.state());
-      delay(2000);
-    }
-  }
+  // 单次连接尝试，不阻塞
+  String clientId = "NodeMCU-" + deviceId;
   
-  if (!mqttClient.connected()) {
-    Serial.println("MQTT连接失败");
+  if (mqttClient.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
+    Serial.println("MQTT连接成功");
+    
+    // 订阅主题
+    bool sub1 = mqttClient.subscribe(topicConfig.c_str(), 1);
+    bool sub2 = mqttClient.subscribe(topicCommand.c_str(), 1);
+    bool sub3 = mqttClient.subscribe("medicinebox/broadcast", 1);
+    
+    Serial.print("订阅状态: config=");
+    Serial.print(sub1 ? "成功 " : "失败 ");
+    Serial.print("command=");
+    Serial.print(sub2 ? "成功 " : "失败 ");
+    Serial.print("broadcast=");
+    Serial.println(sub3 ? "成功" : "失败");
+    
+    mqttConnected = true;
+    displayDirty = true;
+    
+    // 发送连接成功消息
+    sendMqttResponse("CONNECTED", "设备已连接");
+    sendDeviceInfo();
+    
+    showSyncScreen(true, "MQTT已连接");
+    
+  } else {
+    Serial.print("MQTT连接失败，状态码: ");
+    Serial.println(mqttClient.state());
     mqttConnected = false;
     displayDirty = true;
     // 只在首次连接或从连接状态变为断开状态时显示提示
@@ -735,8 +730,9 @@ void connectWiFi() {
   WiFi.begin(ssid, password);
   
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-    delay(500);
+  // 减少WiFi连接尝试次数和延迟，加快setup函数执行
+  while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+    delay(300);
     attempts++;
   }
   
@@ -744,9 +740,9 @@ void connectWiFi() {
     wifiConnected = true;
     timeClient.begin();
     
-    if (syncNTPTime()) {
-      lastTimeSync = millis();
-    }
+    // 异步同步NTP时间，不阻塞setup函数
+    syncNTPTime();
+    lastTimeSync = millis();
     
     Serial.println("WiFi连接成功");
     Serial.print("IP地址: ");
@@ -755,7 +751,8 @@ void connectWiFi() {
   } else {
     wifiConnected = false;
     timeSynced = false;
-    Serial.println("WiFi连接失败");
+    offlineMode = true; // WiFi连接失败直接进入离线模式
+    Serial.println("WiFi连接失败，进入离线模式");
     displayDirty = true;
   }
 }
@@ -895,22 +892,22 @@ void setup() {
   connectWiFi();
   initDeviceId();
   
-  // ---------- MQTT 等待最多 5 秒 ----------
-  mqttWaitStart = millis();
-  
-  while (wifiConnected && !mqttConnected) {
-    connectMQTT();          // 尝试连接
+  // ---------- MQTT 连接尝试 ----------
+  // 只进行1次MQTT连接尝试，不阻塞setup函数
+  if (wifiConnected) {
+    connectMQTT();          // 尝试连接一次
     mqttClient.loop();      // 处理网络
-    
-    if (millis() - mqttWaitStart > 5000) {
-      Serial.println("MQTT连接超时，进入离线模式");
-      break;
-    }
-    delay(200);             // 很短的让步，防止刷屏
+  }
+  
+  // 如果MQTT连接失败，设置离线模式
+  if (wifiConnected && !mqttConnected) {
+    Serial.println("MQTT连接失败，进入离线模式");
+    offlineMode = true;
   }
   // ----------------------------------------
   
   displayDirty = true;
+  inWiFiScreen = false; // 确保退出WiFi屏幕
   
   if (mqttConnected) {
     sendMqttResponse("SYSTEM_READY", "系统已就绪");
