@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Typography, Space, Button } from 'antd';
 import {
   MedicineBoxOutlined,
@@ -16,6 +16,7 @@ import BoxControl from './components/BoxControl';
 import NotificationTest from './components/NotificationTest';
 import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
+import webSocketService from './services/websocket';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -23,6 +24,22 @@ const { Title } = Typography;
 const App = () => {
   const [currentPage, setCurrentPage] = useState('medicines');
   const { user, logout, isAdmin, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      webSocketService.connect((connected) => {
+        if (connected) {
+          console.log('WebSocket连接已建立');
+        } else {
+          console.error('WebSocket连接失败');
+        }
+      });
+    }
+
+    return () => {
+      webSocketService.disconnect();
+    };
+  }, [isAuthenticated]);
 
   // 如果用户未登录，显示登录页面
   if (!isAuthenticated()) {

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Select, Input, message, Space, List, Tag, Typography, Row, Col, Alert, Badge } from 'antd';
 import { BellOutlined, SendOutlined, DeleteOutlined, CheckOutlined, WarningOutlined, ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import SockJS from 'sockjs-client';
-import { Client } from '@stomp/stompjs';
 import { nodemcuApi, notificationApi } from '../services/api';
+import webSocketService from '../services/websocket';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -20,15 +19,23 @@ const NotificationTest = () => {
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [connected, setConnected] = useState(false);
-  const [stompClient, setStompClient] = useState(null);
 
   useEffect(() => {
+    const handleNotification = (notification) => {
+      setNotifications(prev => [notification, ...prev].slice(0, 50));
+    };
+
+    webSocketService.registerCallback(handleNotification);
+    setConnected(webSocketService.isConnected);
     loadDevices();
-    connectWebSocket();
+
+    const checkConnection = setInterval(() => {
+      setConnected(webSocketService.isConnected);
+    }, 1000);
+
     return () => {
-      if (stompClient && stompClient.connected) {
-        stompClient.deactivate();
-      }
+      webSocketService.unregisterCallback(handleNotification);
+      clearInterval(checkConnection);
     };
   }, []);
 
@@ -49,46 +56,6 @@ const NotificationTest = () => {
     } finally {
       setDevicesLoading(false);
     }
-  };
-
-  const connectWebSocket = () => {
-    const socket = new SockJS('http://localhost:8080/ws');
-    const client = new Client({
-      webSocketFactory: () => socket,
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-    });
-
-    client.onConnect = () => {
-      console.log('WebSocket连接成功');
-      setConnected(true);
-      setStompClient(client);
-
-      client.subscribe('/topic/notifications', (message) => {
-        const notification = JSON.parse(message.body);
-        console.log('收到通知:', notification);
-        addNotification(notification);
-      });
-
-      client.subscribe('/topic/device/' + selectedDevice + '/notifications', (message) => {
-        const notification = JSON.parse(message.body);
-        console.log('收到设备通知:', notification);
-        addNotification(notification);
-      });
-    };
-
-    client.onStompError = (frame) => {
-      console.error('WebSocket连接失败:', frame);
-      setConnected(false);
-      message.error('WebSocket连接失败，请检查后端服务');
-    };
-
-    client.activate();
-  };
-
-  const addNotification = (notification) => {
-    setNotifications(prev => [notification, ...prev].slice(0, 50));
   };
 
   const sendTestNotification = async () => {
@@ -170,6 +137,8 @@ const NotificationTest = () => {
         return <WarningOutlined style={{ color: '#faad14' }} />;
       case 'success':
         return <CheckOutlined style={{ color: '#52c41a' }} />;
+      case 'reminder':
+        return <BellOutlined style={{ color: '#1890ff' }} />;
       default:
         return <InfoCircleOutlined style={{ color: '#1890ff' }} />;
     }
@@ -179,8 +148,12 @@ const NotificationTest = () => {
     switch (eventType) {
       case 'EMERGENCY':
         return '紧急报警';
+      case 'EMERGENCY_CANCEL':
+        return '紧急取消';
       case 'MEDICATION_REMINDER':
         return '服药提醒';
+      case 'MEDICINE_TAKEN':
+        return '服药确认';
       case 'DEVICE_WARNING':
         return '设备警告';
       case 'DEVICE_ERROR':
@@ -189,10 +162,20 @@ const NotificationTest = () => {
         return '设备上线';
       case 'DEVICE_OFFLINE':
         return '设备离线';
-      case 'MEDICINE_TAKEN':
-        return '服药确认';
-      case 'CONFIG_SYNC':
-        return '配置同步';
+      case 'TEST_EMERGENCY':
+        return '紧急报警测试';
+      case 'TEST_MEDICATION_REMINDER':
+        return '服药提醒测试';
+      case 'TEST_WARNING':
+        return '警告测试';
+      case 'TEST_ERROR':
+        return '错误测试';
+      case 'TEST_ONLINE':
+        return '上线测试';
+      case 'TEST_OFFLINE':
+        return '离线测试';
+      case 'TEST_NOTIFICATION':
+        return '测试通知';
       default:
         return '系统通知';
     }
@@ -208,7 +191,10 @@ const NotificationTest = () => {
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Title level={3}>通知测试</Title>
-          <Badge status={connected ? 'success' : 'error'} text={connected ? 'WebSocket已连接' : 'WebSocket未连接'} />
+          <Badge 
+            status={connected ? 'success' : 'error'} 
+            text={connected ? 'WebSocket已连接' : 'WebSocket未连接'} 
+          />
         </div>
 
         <Alert
@@ -241,6 +227,11 @@ const NotificationTest = () => {
                       </Option>
                     ))}
                   </Select>
+                  {devices.length === 0 && !devicesLoading && (
+                    <Text type="warning" style={{ marginTop: '8px' }}>
+                      暂无设备，请检查设备连接
+                    </Text>
+                  )}
                 </div>
 
                 <div>
@@ -269,7 +260,12 @@ const NotificationTest = () => {
                       onChange={(e) => setMedicineName(e.target.value)}
                       style={{ marginTop: '8px' }}
                     />
-                    <Text strong style={{ display: 'block', marginTop: '12px' }}>服药时间:</Text>
+                  </div>
+                )}
+
+                {notificationType === 'MEDICATION_REMINDER' && (
+                  <div>
+                    <Text strong>服药时间:</Text>
                     <Input
                       placeholder="例如: 08:00"
                       value={notificationTime}
@@ -312,7 +308,7 @@ const NotificationTest = () => {
                 <Space>
                   <BellOutlined />
                   <span>通知历史</span>
-                  <Badge count={notifications.length} />
+                  <Badge count={notifications.length} showZero />
                 </Space>
               }
               extra={
@@ -333,32 +329,70 @@ const NotificationTest = () => {
               ) : (
                 <List
                   dataSource={notifications}
-                  renderItem={(notification) => (
-                    <List.Item>
+                  renderItem={(item) => (
+                    <List.Item
+                      style={{ 
+                        backgroundColor: item.read ? 'transparent' : '#f0f8ff',
+                        borderRadius: 4
+                      }}
+                      actions={[
+                        !item.read && (
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<CheckOutlined />}
+                            onClick={() => {
+                              setNotifications(prev => prev.map(n => 
+                                n.id === item.id ? { ...n, read: true } : n
+                              ));
+                            }}
+                          >
+                            已读
+                          </Button>
+                        ),
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          danger
+                          onClick={() => {
+                            setNotifications(prev => prev.filter(n => n.id !== item.id));
+                          }}
+                        >
+                          删除
+                        </Button>
+                      ]}
+                    >
                       <List.Item.Meta
-                        avatar={getNotificationIcon(notification.type)}
+                        avatar={getNotificationIcon(item.type)}
                         title={
-                          <Space>
-                            <Text strong>{notification.title}</Text>
-                            <Tag color={notification.type === 'error' ? 'red' : notification.type === 'warning' ? 'orange' : notification.type === 'success' ? 'green' : 'blue'}>
-                              {getNotificationTypeText(notification.eventType)}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: item.read ? 'normal' : 'bold' }}>
+                              {item.title}
+                            </span>
+                            <Tag color={item.type === 'error' ? 'red' : item.type === 'warning' ? 'orange' : item.type === 'success' ? 'green' : 'blue'}>
+                              {getNotificationTypeText(item.eventType)}
                             </Tag>
-                          </Space>
+                          </div>
                         }
                         description={
                           <div>
-                            <Text>{notification.message}</Text>
-                            <br />
-                            <Text type="secondary" style={{ fontSize: '12px' }}>
-                              {formatTime(notification.timestamp)}
-                              {notification.deviceId && ` | 设备: ${notification.deviceId}`}
-                            </Text>
+                            <div style={{ marginBottom: 8 }}>
+                              {item.message}
+                            </div>
+                            {item.deviceId && (
+                              <div style={{ fontSize: 12, color: '#1890ff' }}>
+                                设备: {item.deviceId}
+                              </div>
+                            )}
+                            <div style={{ fontSize: 12, color: '#999' }}>
+                              {formatTime(item.timestamp)}
+                            </div>
                           </div>
                         }
                       />
                     </List.Item>
                   )}
-                  style={{ maxHeight: '500px', overflow: 'auto' }}
                 />
               )}
             </Card>
@@ -371,7 +405,7 @@ const NotificationTest = () => {
             <li>选择通知类型（紧急报警、服药提醒等）</li>
             <li>根据通知类型填写相应信息（药品名称、自定义消息等）</li>
             <li>点击"发送测试通知"按钮</li>
-            <li>通知将通过WebSocket实时推送到通知历史列表</li>
+            <li>通知会通过WebSocket实时推送到通知历史列表</li>
             <li>实际使用中，设备端触发紧急报警或服药时间到时，会自动发送通知</li>
           </ol>
         </Card>

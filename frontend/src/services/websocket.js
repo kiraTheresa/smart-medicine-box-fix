@@ -17,7 +17,7 @@ class WebSocketService {
     }
 
     // 创建SockJS连接
-    const socket = new SockJS('/ws');
+    const socket = new SockJS('/api/ws');
     
     // 创建STOMP客户端
     this.stompClient = new Client({

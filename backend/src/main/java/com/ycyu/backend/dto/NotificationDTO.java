@@ -102,4 +102,18 @@ public class NotificationDTO {
     public void setEventData(String eventData) {
         this.eventData = eventData;
     }
+
+    @Override
+    public String toString() {
+        return String.format("{\"id\":\"%s\",\"title\":\"%s\",\"message\":\"%s\",\"type\":\"%s\",\"deviceId\":\"%s\",\"timestamp\":%d,\"read\":%b,\"eventType\":\"%s\",\"eventData\":\"%s\"}",
+            id,
+            title,
+            message,
+            type,
+            deviceId,
+            timestamp,
+            read,
+            eventType,
+            eventData);
+    }
 }

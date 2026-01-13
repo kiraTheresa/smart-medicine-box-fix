@@ -81,4 +81,7 @@ export const notificationApi = {
   clear: (deviceId) => api.delete('/notifications/clear', {
     params: deviceId ? { deviceId } : {}
   }),
+  pollNotifications: (deviceId, lastTimestamp) => api.get('/notifications/poll', {
+    params: deviceId ? { deviceId, lastTimestamp } : {}
+  }),
 };

@@ -136,11 +136,49 @@ public class NotificationController {
             response.put("timestamp", System.currentTimeMillis());
 
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", "获取历史记录失败: " + e.getMessage());
+
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    @GetMapping("/poll")
+    public ResponseEntity<Map<String, Object>> pollNotifications(
+            @RequestParam(required = false) String deviceId,
+            @RequestParam(required = false) Long lastTimestamp) {
+
+        try {
+            List<NotificationDTO> allNotifications;
+
+            if (deviceId != null && !deviceId.isEmpty()) {
+                allNotifications = notificationService.getDeviceNotifications(deviceId);
+            } else {
+                allNotifications = notificationService.getAllNotifications();
+            }
+
+            List<NotificationDTO> newNotifications;
+            if (lastTimestamp != null) {
+                newNotifications = allNotifications.stream()
+                    .filter(n -> n.getTimestamp() > lastTimestamp)
+                    .collect(java.util.stream.Collectors.toList());
+            } else {
+                newNotifications = allNotifications;
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("notifications", newNotifications);
+            response.put("count", newNotifications.size());
+            response.put("timestamp", System.currentTimeMillis());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "轮询失败: " + e.getMessage());
 
             return ResponseEntity.status(500).body(response);
         }

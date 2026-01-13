@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, List, Avatar, Popover, Badge, Space } from 'antd';
-import { BellOutlined, CheckOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import { BellOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { notificationApi } from '../services/api';
 import webSocketService from '../services/websocket';
 
 const NotificationComponent = () => {
@@ -9,37 +10,24 @@ const NotificationComponent = () => {
   const [visible, setVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 连接WebSocket
   useEffect(() => {
-    webSocketService.connect((connected) => {
-      if (connected) {
-        console.log('✅ WebSocket已连接');
-      } else {
-        console.error('❌ WebSocket连接失败');
-      }
-    });
-
-    // 注册通知回调
     const handleNotification = (notification) => {
-      setNotifications(prev => [notification, ...prev].slice(0, 20)); // 只保留最近20条通知
+      setNotifications(prev => [notification, ...prev].slice(0, 20));
       setUnreadCount(prev => prev + 1);
     };
 
     webSocketService.registerCallback(handleNotification);
 
     return () => {
-      // 取消注册回调
       webSocketService.unregisterCallback(handleNotification);
     };
   }, []);
 
-  // 标记所有通知为已读
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
     setUnreadCount(0);
   };
 
-  // 标记单个通知为已读
   const markAsRead = (id) => {
     setNotifications(prev => prev.map(notification => 
       notification.id === id ? { ...notification, read: true } : notification
@@ -47,13 +35,11 @@ const NotificationComponent = () => {
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
-  // 清除所有通知
   const clearAllNotifications = () => {
     setNotifications([]);
     setUnreadCount(0);
   };
 
-  // 清除单个通知
   const clearNotification = (id) => {
     setNotifications(prev => prev.filter(notification => notification.id !== id));
     setUnreadCount(prev => {
@@ -62,7 +48,6 @@ const NotificationComponent = () => {
     });
   };
 
-  // 获取通知类型对应的图标
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'success':
